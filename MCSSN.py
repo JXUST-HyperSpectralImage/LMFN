@@ -83,17 +83,17 @@ class ZhongEtAl(nn.Module):
         x1 = x + x_res
 
         # second spectral residual block
-        x_res = self.spectral_block(x1)
-        if self.drop_out:
-            F.dropout3d(x_res, p=0.5)
-
-        x2 = x1 + x_res
+#        x_res = self.spectral_block(x1)
+#        if self.drop_out:
+#            F.dropout3d(x_res, p=0.5)
+#
+#        x2 = x1 + x_res
 
         # spectral tranform to spatial
-        x = self.spe_to_spa(x2)
+        x = self.spe_to_spa(x1)
         if self.drop_out:
             F.dropout3d(x, p=0.5)
-        # x = self.dim_trans(x)
+
 
         # spatial initial conv
         x = self.dim_trans(x)
@@ -119,21 +119,21 @@ class ZhongEtAl(nn.Module):
 
 
         # second spatial residual block
-        x_res = self.spatial_conv_layer(x3)
-        if self.drop_out:
-            F.dropout3d(x, p=0.5)
-        x_res = self.dim_trans(x_res)
-        x_res = self.spatial_conv_layer(x_res)
-        if self.drop_out:
-            F.dropout3d(x_res, p=0.5)
-        x_res = self.dim_trans(x_res)
-
-        x2 = self.spe_to_spa(x2)
-        x2 = self.dim_trans(x2)
-
-        x4 = x3 + x_res + x2
+#        x_res = self.spatial_conv_layer(x3)
+#        if self.drop_out:
+#            F.dropout3d(x, p=0.5)
+#        x_res = self.dim_trans(x_res)
+#        x_res = self.spatial_conv_layer(x_res)
+#        if self.drop_out:
+#            F.dropout3d(x_res, p=0.5)
+#        x_res = self.dim_trans(x_res)
+#
+#        x2 = self.spe_to_spa(x2)
+#        x2 = self.dim_trans(x2)
+#
+#        x4 = x3 + x_res + x2
         # pooling layer
-        x = self.pool(x4)
+        x = self.pool(x3)
         x = x.view(x.size(0), -1)
 
         # fully connected layer
@@ -165,7 +165,7 @@ def get_model(name, **kwargs):
     if name == 'IndianPines':
         # training percentage and validation percentage
         kwargs.setdefault('training_percentage', 0.2)
-        kwargs.setdefault('validation_group', 0.1)
+        kwargs.setdefault('validation_percentage', 0.1)
         # learning rate
         kwargs.setdefault('lr', 0.0003)
         # conv layer kernel numbers
@@ -173,7 +173,7 @@ def get_model(name, **kwargs):
     elif name == 'PaviaU':
         # training percentage and validation percentage
         kwargs.setdefault('training_percentage', 0.1)
-        kwargs.setdefault('validation_group', 0.1)
+        kwargs.setdefault('validation_percentage', 0.1)
         # learning rate
         kwargs.setdefault('lr', 0.0003)
         # conv layer kernel numbers
@@ -181,7 +181,7 @@ def get_model(name, **kwargs):
     elif name == 'KSC':
         # training percentage and validation percentage
         kwargs.setdefault('training_percentage', 0.2)
-        kwargs.setdefault('validation_group', 0.1)
+        kwargs.setdefault('validation_percentage', 0.1)
         # learning rate
         kwargs.setdefault('lr', 0.0001)
         # conv layer kernel numbers
@@ -189,7 +189,7 @@ def get_model(name, **kwargs):
     elif name == 'Botswana':
         # training percentage and validation percentage
         kwargs.setdefault('training_percentage', 0.1)
-        kwargs.setdefault('validation_group', 0.05)
+        kwargs.setdefault('validation_percentage', 0.05)
         # learning rate
         kwargs.setdefault('lr', 0.0001)
         # conv layer kernel numbers
@@ -197,7 +197,7 @@ def get_model(name, **kwargs):
     elif name == 'HoustonU':
         # training percentage and validation percentage
         kwargs.setdefault('training_percentage', 0.1)
-        kwargs.setdefault('validation_group', 0.05)
+        kwargs.setdefault('validation_percentage', 0.05)
         # learning rate
         kwargs.setdefault('lr', 0.0001)
         # conv layer kernel numbers
@@ -205,24 +205,18 @@ def get_model(name, **kwargs):
     elif name == 'Salinas':
         # training percentage and validation percentage
         kwargs.setdefault('training_percentage', 0.1)
-        kwargs.setdefault('validation_group', 0.05)
+        kwargs.setdefault('validation_percentage', 0.05)
         # learning rate
         kwargs.setdefault('lr', 0.0001)
         # conv layer kernel numbers
         kwargs.setdefault('kernel_nums', 24)
 
     model = ZhongEtAl(in_channel=kwargs['n_bands'], classes=kwargs['n_classes'], kernel_nums=kwargs['kernel_nums'])
-    optimizer = optim.RMSprop(model.parameters(), lr=kwargs['lr'])
     criterion = nn.CrossEntropyLoss(weight=kwargs['weights'])
     model = model.to(kwargs['device'])
-    kwargs.setdefault('scheduler', optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1,
-                                                                        patience=kwargs['epoch'] // 4, verbose=True))
-    kwargs.setdefault('3D_data', True)
+    optimizer = optim.SGD(model.parameters(), lr=kwargs['lr'], weight_decay=0.0005, momentum=0.9)
+    kwargs.setdefault('scheduler', optim.lr_scheduler.StepLR(optimizer, step_size=33333, gamma=0.1))
     kwargs.setdefault('supervision', 'full')
-    # 数据增强默认关闭
-    kwargs.setdefault('flip_augmentation', False)
-    kwargs.setdefault('radiation_augmentation', False)
-    kwargs.setdefault('mixture_augmentation', False)
     # 使用中心像素点作为监督信息
     kwargs.setdefault('center_pixel', True)
     return model, optimizer, criterion, kwargs

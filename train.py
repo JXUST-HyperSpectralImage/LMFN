@@ -164,7 +164,7 @@ def test(net, img, hyperparams):
                 data = np.copy(data)
                 data = data.transpose(0, 3, 1, 2)  # (N, H, W, C)-->（N, C, H, W)
                 data = torch.from_numpy(data)
-                if hyperparams['3D_data']:
+                if hyperparams['patch_size']>1:
                     data = data.unsqueeze(1)
 
             indices = [b[1:] for b in batch]
