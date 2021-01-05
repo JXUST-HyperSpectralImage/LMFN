@@ -11,7 +11,7 @@ from utils import count_sliding_window, sliding_window, grouper, camel_to_snake
 
 # 普通训练过程
 def train(logger, net, optimizer, criterion, train_loader, epoch, save_epoch, scheduler=None,
-          device=torch.device('cpu'), val_loader=None, supervision='full', vis_display=None):
+          device=torch.device('cpu'), val_loader=None, supervision='full', vis_display=None, RUN=None):
     # 首先检查损失函数
     if criterion is None:
         logger.debug("Missing criterion. You must specify a loss function.")
@@ -71,7 +71,7 @@ def train(logger, net, optimizer, criterion, train_loader, epoch, save_epoch, sc
         tqdm.write(f"Epoch [{e}/{epoch}    avg_loss:{avg_loss:.2f}, val_acc:{val_acc:.2f}]")
         # 在日志打印信息
         logger.debug(f"Epoch [{e}/{epoch}    avg_loss:{avg_loss:.2f}, val_acc:{val_acc:.2f}]")
-        # 保存断点
+        # 保存断点(如果不是必要情况下不用保存，保存会降低模型训练速度)
         #        if e%save_epoch == 0:
         #            update = None if loss_win is None else 'append'
         #            save_model(logger, net, camel_to_snake(str(net.__class__.__name__)),train_loader.dataset.dataset_name, epoch=e, metric=abs(metric))
@@ -80,14 +80,14 @@ def train(logger, net, optimizer, criterion, train_loader, epoch, save_epoch, sc
                 X=np.arange(e),
                 Y=avg_losses[:e],
                 win=epoch_loss_win,
-                opts={'title': "Epoch loss",
+                opts={'title': "Epoch loss"+str(RUN),
                       'xlabel': "Iterations",
                       'ylabel': "Loss"
                       })
             val_win = vis_display.line(Y=np.array(val_accuracies),
                                        X=np.arange(len(val_accuracies)),
                                        win=val_win,
-                                       opts={'title': "Validation accuracy",
+                                       opts={'title': "Validation accuracy"+str(RUN),
                                              'xlabel': "Epochs",
                                              'ylabel': "Accuracy"
                                              })
@@ -95,18 +95,18 @@ def train(logger, net, optimizer, criterion, train_loader, epoch, save_epoch, sc
         X=np.arange(iter_),
         Y=losses[:iter_],
         win=batch_loss_win,
-        opts={'title': "Batch loss",
+        opts={'title': "Batch loss"+str(RUN),
               'xlabel': "Iterations",
               'ylabel': "Loss"
               })
-    lr_win = vis_display.line(
-        X=np.arange(len(lr_list)),
-        Y=np.array(lr_list),
-        win=lr_win,
-        opts={'title': "Learning rate",
-              'xlabel': "Iterations",
-              'ylabel': "LR"
-              })
+    # lr_win = vis_display.line(
+    #     X=np.arange(len(lr_list)),
+    #     Y=np.array(lr_list),
+    #     win=lr_win,
+    #     opts={'title': "Learning rate"+str(RUN),
+    #           'xlabel': "Iterations",
+    #           'ylabel': "LR"
+    #           })
 
 
 # 普通验证过程

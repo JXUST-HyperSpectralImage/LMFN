@@ -109,7 +109,7 @@ TEST_STRIDE = args.test_stride
 hyperparams = vars(args)
 for i in range(RUN):
     # Open visdom server
-    vis = visdom.Visdom(env=DATASET + ' ' + MODEL)
+    vis = visdom.Visdom(env=DATASET + ' ' + MODEL + '-PATCH_SIZE' + str(PATCH_SIZE) + '-SAMPLE_NUMS' + str(SAMPLE_NUMS) + '-EPOCH' + str(EPOCH))
     if not vis.check_connection:
         print("Visdom is not connected. Did you run 'python -m visdom.server' ?")
 
@@ -117,7 +117,7 @@ for i in range(RUN):
     img, gt, LABEL_VALUES, IGNORED_LABELS = get_dataset(logger, DATASET, FOLDER)
 
     # Show dataset
-    display_dataset(img=img, vis=vis)
+    # display_dataset(img=img, vis=vis)
 
     # Number of classes
     N_CLASSES = len(LABEL_VALUES)
@@ -137,9 +137,9 @@ for i in range(RUN):
     val_gt, _ = sample_gt(gt, train_size=VALIDATION_PERCENTAGE, mode=SAMPLING_MODE, sample_nums=SAMPLE_NUMS)
 
     # Show groundtruth
-    display_goundtruth(gt=train_gt, vis=vis, caption = "Training {} samples selected".format(np.count_nonzero(train_gt)))
-    display_goundtruth(gt=test_gt, vis=vis, caption = "Testing {} samples selected".format(np.count_nonzero(test_gt)))
-    display_goundtruth(gt=val_gt, vis=vis, caption = "Validation {} samples selected".format(np.count_nonzero(val_gt)))
+    # display_goundtruth(gt=train_gt, vis=vis, caption = "Training {} samples selected".format(np.count_nonzero(train_gt)))
+    # display_goundtruth(gt=test_gt, vis=vis, caption = "Testing {} samples selected".format(np.count_nonzero(test_gt)))
+    # display_goundtruth(gt=val_gt, vis=vis, caption = "Validation {} samples selected".format(np.count_nonzero(val_gt)))
 
     logger.info("{} samples selected for validation(over {})".format(np.count_nonzero(val_gt), np.count_nonzero(train_gt)))
                                                      
@@ -182,20 +182,20 @@ for i in range(RUN):
         model.load_state_dict(torch.load(CHECKPOINT))
     try:
         logger.info('----------Training process----------')
-        train(logger=logger, net=model, optimizer=optimizer, criterion=loss,train_loader=train_loader, epoch=hyperparams['epoch'], save_epoch=hyperparams['save_epoch'], scheduler=hyperparams['scheduler'], device=hyperparams['device'], supervision=hyperparams['supervision'], val_loader=val_loader, vis_display=vis)
+        train(logger=logger, net=model, optimizer=optimizer, criterion=loss,train_loader=train_loader, epoch=hyperparams['epoch'], save_epoch=hyperparams['save_epoch'], scheduler=hyperparams['scheduler'], device=hyperparams['device'], supervision=hyperparams['supervision'], val_loader=val_loader, vis_display=vis, RUN=i)
     except KeyboardInterrupt:
         # Allow the user to stop the training
         pass
     probabilities = test(model, img, hyperparams)
     prediction = np.argmax(probabilities, axis=-1)
-    display_goundtruth(gt=prediction, vis=vis, caption="Testing ground truth(full)")
+    display_goundtruth(gt=prediction, vis=vis, caption="Testing ground truth(full)"+"RUN{}".format(i))
 
     results = metrics(prediction, test_gt, ignored_labels=hyperparams['ignored_labels'], n_classes=N_CLASSES)
     mask = np.zeros(gt.shape, dtype='bool')
     for l in IGNORED_LABELS:
         mask[gt == l] = True
     prediction[mask] = 0
-    display_goundtruth(gt=prediction, vis=vis, caption="Testing ground truth(semi)")
+    display_goundtruth(gt=prediction, vis=vis, caption="Testing ground truth(semi)"+"RUN{}".format(i))
 
     logger.info('The network training successfully!!!')
 
