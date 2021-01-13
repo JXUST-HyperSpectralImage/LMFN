@@ -5,37 +5,18 @@ from torch import optim
 from torchsummary import summary
 
 
-# class SpatialBlock(nn.Sequential):
-#     def __init__(self):
-#         super(SpatialBlock, self).__init__()
-#         self.spatial_conv_layer = nn.Sequential(
-#             nn.Conv3d(1, 24, kernel_size=(24, 3, 3), stride=(1, 1, 1), padding=(0, 1, 1)), nn.BatchNorm3d(24))
+# 定义深度可分离卷积
+class depthwise_separable_conv(nn.Module):
+    # def __init__(self, nin, nout):
+    def __init__(self, nin):
+        super(depthwise_separable_conv, self).__init__()
+        self.depthwise = nn.Conv2d(nin, nin, kernel_size=3, padding=1, groups=nin)
+        #self.pointwise = nn.Conv2d(nin, nout, kernel_size=1)
 
-
-# class _DenseLayer(nn.Sequential):
-#     def __init__(self, input_channels, drop_rate=0):
-#         super(_DenseLayer, self).__init__()
-#         self.add_module('norm1', nn.BatchNorm3d(input_channels))
-#         self.add_module('relu1', nn.ReLU(inplace=True))
-#         self.add_module('conv3d', nn.Conv3d(input_channels, input_channels, kernel_size=(7, 3, 3), stride=(1, 1, 1), padding=(3, 1, 1)))
-#         self.drop_rate = drop_rate
-#
-#     def forward(self, inputs):
-#         new_features = super(_DenseLayer, self).forward(inputs)
-#         if self.drop_rate > 0:
-#             new_features = F.dropout3d(new_features, p=self.drop_rate, training=self.training)
-#         print('inputs', inputs.shape)
-#         print('new_features', new_features.shape)
-#         return torch.cat([inputs, new_features], 1)
-#
-#
-# class _DenseBlock(nn.Sequential):
-#     def __init__(self, num_layers, input_channels, growth_rate, drop_rate):
-#         super(_DenseBlock, self).__init__()
-#         for i in range(num_layers):
-#             print('dense block features', input_channels + growth_rate * i)
-#             layer = _DenseLayer(input_channels + growth_rate * i, drop_rate)
-#             self.add_module(f'DenseLayer{i + 1}', layer)
+    def forward(self, x):
+        out = self.depthwise(x)
+        #out = self.pointwise(out)
+        return out
 
 
 class MCSSN(nn.Module):
@@ -45,7 +26,6 @@ class MCSSN(nn.Module):
         # Spectral Featrue Learning
         self.spectral_conv1 = nn.Sequential(
             nn.Conv3d(1, kernel_nums, kernel_size=(spe_kernel_depth, 1, 1), stride=(2, 1, 1), padding=(0, 0, 0)), nn.BatchNorm3d(kernel_nums))
-        # spe_feature_pad = self.feature_pad(spe_kernel_depth)
 
         self.spectral_residual_block = nn.Sequential(
             nn.Conv3d(kernel_nums, kernel_nums, kernel_size=(spe_kernel_depth, 1, 1), stride=(1, 1, 1), padding=(spe_kernel_depth//2, 0, 0)),
@@ -56,26 +36,16 @@ class MCSSN(nn.Module):
         # spectral transform to spatial
         spa_kernel_depth = self.spa_feature_depth(kernel_depth=spe_kernel_depth, in_channel=in_channel)
         self.spe_to_spa = nn.Sequential(
-            nn.Conv3d(kernel_nums, kernel_nums//3, kernel_size=(spe_kernel_depth, 1, 1), stride=(1, 1, 1), padding=(spe_kernel_depth//2, 0, 0)),
-            nn.BatchNorm3d(kernel_nums//3)
+            nn.Conv3d(kernel_nums, spa_kernel_depth, kernel_size=(spa_kernel_depth, 1, 1), stride=(1, 1, 1), padding=(0, 0, 0)),
+            nn.BatchNorm3d(spa_kernel_depth)
         )
 
-        spa_kernels = kernel_nums//3
-        self.spatial_conv1 = nn.Conv3d(spa_kernels, spa_kernels, kernel_size=(7, 3, 3), stride=(1, 1, 1), padding=(3, 1, 1))
-        self.spatial_conv2 = nn.Conv3d(spa_kernels*2, spa_kernels*2, kernel_size=(7, 3, 3), stride=(1, 1, 1), padding=(3, 1, 1))
+        self.spatial_conv = depthwise_separable_conv(spa_kernel_depth)
 
-        # self.spatial_dense_layer = _DenseBlock(num_layers=4, input_channels=kernel_nums//4, growth_rate=6, drop_rate=drop_rate)
-
-        self.end_conv = nn.Conv3d(kernel_nums, kernel_nums, kernel_size=(spa_kernel_depth, 3, 3), stride=(1, 1, 1), padding=(0, 1, 1))
-        self.pool = nn.AdaptiveAvgPool3d((kernel_nums, 1, 1))
-        self.fc = nn.Linear(kernel_nums, classes)
+        self.pool = nn.AdaptiveAvgPool3d((spa_kernel_depth, 1, 1))
+        self.fc = nn.Linear(spa_kernel_depth, classes)
 
         self.drop_rate = drop_rate
-
-    # @staticmethod
-    # def feature_pad(kernel_depth):
-    #     depth_pad = kernel_depth // 2
-    #     return depth_pad
 
     @staticmethod
     def spa_feature_depth(kernel_depth, in_channel, padding=0, dilation=1, stride=2):
@@ -92,44 +62,47 @@ class MCSSN(nn.Module):
         # spectral initial conv
         x0 = self.spectral_conv1(x)
         if self.drop_rate > 0:
-            F.dropout3d(x0, p=0.5)
+            F.dropout3d(x0, p=self.drop_rate)
 
         # frist spectral residual block
         x_res = self.spectral_residual_block(x0)
         if self.drop_rate > 0:
-            F.dropout3d(x_res, p=0.5)
+            F.dropout3d(x_res, p=self.drop_rate)
 
         x1 = x0 + x_res
 
         # spectral tranform to spatial
         x2 = self.spe_to_spa(x1)
-
+        x2 = self.dim_trans(x2)
         if self.drop_rate > 0:
-            F.dropout3d(x2, p=0.5)
-        # x2 = self.dim_trans(x2)
-        # print(x2.shape)
+            F.dropout3d(x2, p=self.drop_rate)
 
         x0 = self.spe_to_spa(x0)
-
+        x0 = self.dim_trans(x0)
 
         x2 = x2 + x0
 
         # spatial initial conv
-        # x3 = self.spatial_dense_layer(x2)
-        x3_1 = self.spatial_conv1(x2)
-        x3_1 = torch.cat([x3_1, x2], 1)
+        x2 = torch.squeeze(x2)
+        # x2 = torch.unsqueeze(x2, 2)
+        x3_1 = self.spatial_conv(x2)
+        # x3_1 = torch.cat([x3_1, x2], 1)
 
-        x3_2 = self.spatial_conv2(x3_1)
-        x3 = torch.cat([x3_2, x2], 1)
+        x3 = self.spatial_conv(x3_1)
+        # x3 = torch.cat([x3_2, x2], 1)
 
+        x1 = self.spe_to_spa(x1)
+        x1 = self.dim_trans(x1)
+
+        x3 = torch.unsqueeze(x3, 1)
         x3 = x3 + x1
-        x = self.end_conv(x3)
-        x = self.dim_trans(x)
-
-        x = self.pool(x)
+        # x = self.end_conv(x3)
+        # x = self.dim_trans(x)
+        # Adaptive Average Pooling 3d
+        x = self.pool(x3)
         x = x.view(x.size(0), -1)
 
-        # fully connected layer
+        # Fully connected layer
         x = self.fc(x)
         return x
 

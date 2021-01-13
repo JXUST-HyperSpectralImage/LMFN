@@ -109,7 +109,7 @@ TEST_STRIDE = args.test_stride
 hyperparams = vars(args)
 for i in range(RUN):
     # Open visdom server
-    vis = visdom.Visdom(env=DATASET + ' ' + MODEL + '-PATCH_SIZE' + str(PATCH_SIZE) + '-SAMPLE_NUMS' + str(SAMPLE_NUMS) + '-EPOCH' + str(EPOCH))
+    vis = visdom.Visdom(env='SAMPLENUMS' + str(SAMPLE_NUMS) + ' ' + DATASET + ' ' + MODEL + ' ' + 'PATCH_SIZE' + str(PATCH_SIZE) + ' ' + 'EPOCH' + str(EPOCH))
     if not vis.check_connection:
         print("Visdom is not connected. Did you run 'python -m visdom.server' ?")
 
