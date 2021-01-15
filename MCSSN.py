@@ -91,13 +91,13 @@ class MCSSN(nn.Module):
         x3 = self.spatial_conv(x3_1)
         # x3 = torch.cat([x3_2, x2], 1)
 
-        x1 = self.spe_to_spa(x1)
-        x1 = self.dim_trans(x1)
+#        x1 = self.spe_to_spa(x1)
+#        x1 = self.dim_trans(x1)
 
         x3 = torch.unsqueeze(x3, 1)
-        x3 = x3 + x1
-        # x = self.end_conv(x3)
-        # x = self.dim_trans(x)
+#        x3 = x3 + x1
+#        x = self.end_conv(x3)
+#        x = self.dim_trans(x)
         # Adaptive Average Pooling 3d
         x = self.pool(x3)
         x = x.view(x.size(0), -1)
@@ -126,56 +126,57 @@ def get_model(name, **kwargs):
     kwargs.setdefault('weights', weights)
     kwargs.setdefault('batch_size', 16)
     kwargs.setdefault('patch_size', 7)
-    kwargs.setdefault('epoch', 200)
+    kwargs.setdefault('epoch', 100)
+    kwargs.setdefault('kernel_nums', 24)
 
-    if name == 'IndianPines':
-        # training percentage and validation percentage
-        kwargs.setdefault('training_percentage', 0.2)
-        kwargs.setdefault('validation_percentage', 0.1)
-        # learning rate
-        kwargs.setdefault('lr', 0.0003)
-        # conv layer kernel numbers
-        kwargs.setdefault('kernel_nums', 24)
-    elif name == 'PaviaU':
-        # training percentage and validation percentage
-        kwargs.setdefault('training_percentage', 0.1)
-        kwargs.setdefault('validation_percentage', 0.1)
-        # learning rate
-        kwargs.setdefault('lr', 0.0003)
-        # conv layer kernel numbers
-        kwargs.setdefault('kernel_nums', 24)
-    elif name == 'KSC':
-        # training percentage and validation percentage
-        kwargs.setdefault('training_percentage', 0.2)
-        kwargs.setdefault('validation_percentage', 0.1)
-        # learning rate
-        kwargs.setdefault('lr', 0.0001)
-        # conv layer kernel numbers
-        kwargs.setdefault('kernel_nums', 16)
-    elif name == 'Botswana':
-        # training percentage and validation percentage
-        kwargs.setdefault('training_percentage', 0.1)
-        kwargs.setdefault('validation_percentage', 0.05)
-        # learning rate
-        kwargs.setdefault('lr', 0.0001)
-        # conv layer kernel numbers
-        kwargs.setdefault('kernel_nums', 24)
-    elif name == 'HoustonU':
-        # training percentage and validation percentage
-        kwargs.setdefault('training_percentage', 0.1)
-        kwargs.setdefault('validation_percentage', 0.05)
-        # learning rate
-        kwargs.setdefault('lr', 0.0001)
-        # conv layer kernel numbers
-        kwargs.setdefault('kernel_nums', 24)
-    elif name == 'Salinas':
-        # training percentage and validation percentage
-        kwargs.setdefault('training_percentage', 0.1)
-        kwargs.setdefault('validation_percentage', 0.05)
-        # learning rate
-        kwargs.setdefault('lr', 0.0001)
-        # conv layer kernel numbers
-        kwargs.setdefault('kernel_nums', 24)
+#    if name == 'IndianPines':
+#        # training percentage and validation percentage
+#        kwargs.setdefault('training_percentage', 0.2)
+#        kwargs.setdefault('validation_percentage', 0.1)
+#        # learning rate
+#        kwargs.setdefault('lr', 0.0003)
+#        # conv layer kernel numbers
+#        kwargs.setdefault('kernel_nums', 24)
+#    elif name == 'PaviaU':
+#        # training percentage and validation percentage
+#        kwargs.setdefault('training_percentage', 0.1)
+#        kwargs.setdefault('validation_percentage', 0.1)
+#        # learning rate
+#        kwargs.setdefault('lr', 0.0003)
+#        # conv layer kernel numbers
+#        kwargs.setdefault('kernel_nums', 24)
+#    elif name == 'KSC':
+#        # training percentage and validation percentage
+#        kwargs.setdefault('training_percentage', 0.2)
+#        kwargs.setdefault('validation_percentage', 0.1)
+#        # learning rate
+#        kwargs.setdefault('lr', 0.0001)
+#        # conv layer kernel numbers
+#        kwargs.setdefault('kernel_nums', 16)
+#    elif name == 'Botswana':
+#        # training percentage and validation percentage
+#        kwargs.setdefault('training_percentage', 0.1)
+#        kwargs.setdefault('validation_percentage', 0.05)
+#        # learning rate
+#        kwargs.setdefault('lr', 0.0001)
+#        # conv layer kernel numbers
+#        kwargs.setdefault('kernel_nums', 24)
+#    elif name == 'HoustonU':
+#        # training percentage and validation percentage
+#        kwargs.setdefault('training_percentage', 0.1)
+#        kwargs.setdefault('validation_percentage', 0.05)
+#        # learning rate
+#        kwargs.setdefault('lr', 0.0001)
+#        # conv layer kernel numbers
+#        kwargs.setdefault('kernel_nums', 24)
+#    elif name == 'Salinas':
+#        # training percentage and validation percentage
+#        kwargs.setdefault('training_percentage', 0.1)
+#        kwargs.setdefault('validation_percentage', 0.05)
+#        # learning rate
+#        kwargs.setdefault('lr', 0.0001)
+#        # conv layer kernel numbers
+#        kwargs.setdefault('kernel_nums', 24)
 
     model = MCSSN(
         in_channel=kwargs['n_bands'],
@@ -192,8 +193,9 @@ def get_model(name, **kwargs):
         'scheduler',
         optim.lr_scheduler.StepLR(
             optimizer,
-            step_size=33333,
+            step_size=1875,
             gamma=0.1))
+
     kwargs.setdefault('supervision', 'full')
     # 使用中心像素点作为监督信息
     kwargs.setdefault('center_pixel', True)

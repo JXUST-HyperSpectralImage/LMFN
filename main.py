@@ -47,7 +47,7 @@ parser.add_argument('--run', type=int, default=1,
 
 
 group_dataset = parser.add_argument_group('Dataset')
-group_dataset.add_argument('--sampling_mode', type=str, default='fixed',
+group_dataset.add_argument('--sampling_model', type=str, default='fixed',
                            help="Sampling mode (random sampling or disjoint, default:  random)")
 group_dataset.add_argument('--training_percentage', type=float, default=0.1,
                            help="Percentage of samples to use for training")
@@ -91,7 +91,7 @@ FOLDER = args.folder
 # Number of epochs to run
 EPOCH = args.epoch
 # Sampling mode, e.g random sampling
-SAMPLING_MODE = args.sampling_mode
+SAMPLING_MODE = args.sampling_model
 # Percentage of samples to use for training and validation
 TRAINING_PERCENTAGE = args.training_percentage
 VALIDATION_PERCENTAGE = args.validation_percentage
@@ -136,10 +136,6 @@ for i in range(RUN):
     # Sample random validation spectra
     val_gt, _ = sample_gt(gt, train_size=VALIDATION_PERCENTAGE, mode=SAMPLING_MODE, sample_nums=SAMPLE_NUMS)
 
-    # Show groundtruth
-    # display_goundtruth(gt=train_gt, vis=vis, caption = "Training {} samples selected".format(np.count_nonzero(train_gt)))
-    # display_goundtruth(gt=test_gt, vis=vis, caption = "Testing {} samples selected".format(np.count_nonzero(test_gt)))
-    # display_goundtruth(gt=val_gt, vis=vis, caption = "Validation {} samples selected".format(np.count_nonzero(val_gt)))
 
     logger.info("{} samples selected for validation(over {})".format(np.count_nonzero(val_gt), np.count_nonzero(train_gt)))
                                                      

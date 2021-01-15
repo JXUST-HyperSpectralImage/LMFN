@@ -99,14 +99,14 @@ def train(logger, net, optimizer, criterion, train_loader, epoch, save_epoch, sc
               'xlabel': "Iterations",
               'ylabel': "Loss"
               })
-    # lr_win = vis_display.line(
-    #     X=np.arange(len(lr_list)),
-    #     Y=np.array(lr_list),
-    #     win=lr_win,
-    #     opts={'title': "Learning rate"+str(RUN),
-    #           'xlabel': "Iterations",
-    #           'ylabel': "LR"
-    #           })
+    lr_win = vis_display.line(
+         X=np.arange(len(lr_list)),
+         Y=np.array(lr_list),
+         win=lr_win,
+         opts={'title': "Learning rate"+str(RUN),
+               'xlabel': "Iterations",
+               'ylabel': "LR"
+               })
 
 
 # 普通验证过程
