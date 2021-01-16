@@ -1,0 +1,11 @@
+# MCSSN
+为了使网络尾部更平滑，网络在空间层最后取消与光谱层连接，
+| patch_size | batch_loss      | epoch_loss | val_acc      | ground_truth(semi) | ground_truth(full)      |
+| -----------| -----------     | -----------| -----------  | -----------        | -----------             |
+| 6      | ![这是图片](/pic/patch6/patch6batchloss.png "batch_loss")       | ![这是图片](/pic/patch6/patch6epochloss.png "epoch_loss")      | ![这是图片](/pic/patch6/patch6acc.png "val_acc")       | ![这是图片](/pic/patch6/patch6semi.jpg "ground_truth")      | ![这是图片](/pic/patch6/patch6full.jpg "ground_truth")       |
+| 7      | ![这是图片](/pic/patch7/Unknown-3.png "batch_loss")       | ![这是图片](/pic/patch7/Unknown.png "epoch_loss")      | ![这是图片](/pic/patch7/Unknown-2.png "val_acc")       | ![这是图片](/pic/patch7/visdom_image-2.jpg "ground_truth")      | ![这是图片](/pic/patch7/visdom_image.jpg "ground_truth")       |
+| 8      | ![这是图片](/pic/patch8/Unknown-3.png "batch_loss")       | ![这是图片](/pic/patch8/Unknown.png "epoch_loss")      | ![这是图片](/pic/patch8/Unknown-2.png "val_acc")       | ![这是图片](/pic/patch8/visdom_image-2.jpg "ground_truth")      | ![这是图片](/pic/patch8/visdom_image.jpg "ground_truth")       |
+| 9      | ![这是图片](/pic/patch9/Unknown-3.png "batch_loss")       | ![这是图片](/pic/patch9/Unknown.png "epoch_loss")      | ![这是图片](/pic/patch9/Unknown-2.png "val_acc")       | ![这是图片](/pic/patch9/visdom_image-2.jpg "ground_truth")      | ![这是图片](/pic/patch9/visdom_image.jpg "ground_truth")       |
+| 10     | ![这是图片](/pic/patch10/Unknown-3.png "batch_loss")       | ![这是图片](/pic/patch10/Unknown.png "epoch_loss")      | ![这是图片](/pic/patch10/Unknown-2.png "val_acc")       | ![这是图片](/pic/patch10/visdom_image-2.jpg "ground_truth")      | ![这是图片](/pic/patch10/visdom_image.jpg "ground_truth")       |
+| 11     | ![这是图片](/pic/patch11/Unknown-3.png "batch_loss")       | ![这是图片](/pic/patch11/Unknown.png "epoch_loss")      | ![这是图片](/pic/patch11/Unknown-2.png "val_acc")       | ![这是图片](/pic/patch11/visdom_image-2.jpg "ground_truth")      | ![这是图片](/pic/patch11/visdom_image.jpg "ground_truth")       |
+| 12      | ![这是图片](/pic/patch12/Unknown-3.png "batch_loss")       | ![这是图片](/pic/patch12/Unknown.png "epoch_loss")      | ![这是图片](/pic/patch12/Unknown-2.png "val_acc")       | ![这是图片](/pic/patch12/visdom_image-2.jpg "ground_truth")      | ![这是图片](/pic/patch12/visdom_image.jpg "ground_truth")       |
