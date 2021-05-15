@@ -47,15 +47,19 @@ parser.add_argument('--run', type=int, default=1,
 
 
 group_dataset = parser.add_argument_group('Dataset')
-group_dataset.add_argument('--sampling_mode', type=str, default='fixed',
+group_dataset.add_argument('--sampling_mode', type=str, default='random',
                            help="Sampling mode (random sampling or disjoint, default:  fixed)")
-group_dataset.add_argument('--training_percentage', type=float, default=0.1,
+group_dataset.add_argument('--training_percentage', type=float,
                            help="Percentage of samples to use for training")
-group_dataset.add_argument('--validation_percentage', type=float, default=0.1,
+group_dataset.add_argument('--validation_percentage', type=float,
                            help="In the training data set, percentage of the labeled data are randomly "
                                 "assigned to validation groups.")
 group_dataset.add_argument('--sample_nums', type=int, default=20,
                            help="Number of samples to use for training and validation")
+group_dataset.add_argument('--train_gt', action='store_true',
+                           help="Samples use of training")
+group_dataset.add_argument('--test_gt', action='store_true',
+                           help="Samples use of testing")
 
 
 group_train = parser.add_argument_group('Training')
@@ -66,6 +70,8 @@ group_train.add_argument('--save_epoch', type=int, default=5,
 group_train.add_argument('--patch_size', type=int,
                          help="patch size of  spectral feature extration model"
                               "(optional, if absent will be set by the model)")
+group_train.add_argument('--kernel_nums', type=int,
+                         help="kernel nums of MI3DCNN spectral extraction feature moudle")
 group_train.add_argument('--lr', type=float,
                          help="Learning rate, set by the model if not specified.")
 group_train.add_argument('--batch_size', type=int,
@@ -73,7 +79,7 @@ group_train.add_argument('--batch_size', type=int,
 group_train.add_argument('--class_balancing', action='store_true',
                          help="Inverse median frequency class balancing (default = False)")
 group_train.add_argument('--test_stride', type=int, default=1,
-                         help="Sliding window step stride 
+                         help="Sliding window step stride")
                         
 args = parser.parse_args()
 
@@ -103,21 +109,45 @@ CHECKPOINT = args.restore
 LEARNING_RATE = args.lr
 # Automated class balancing
 CLASS_BALANCING = args.class_balancing
-
+TRAIN_GT = args.train_gt
+TEST_GT = args.test_gt
 TEST_STRIDE = args.test_stride
 
 hyperparams = vars(args)
+
+# Load the dataset
+img, gt, LABEL_VALUES, IGNORED_LABELS = get_dataset(logger, DATASET, FOLDER)
 for i in range(RUN):
+    train_gt_file = '../dataset/'+DATASET+'/train_gt'+str(i)+'.npy'
+    test_gt_file = '../dataset/' + DATASET + '/test_gt'+str(i)+'.npy'
+    if TRAIN_GT and TEST_GT:
+        train_gt = np.load(train_gt_file, 'r')
+        logger.info("Load train_gt successfully!(PATH:{})".format(train_gt_file))
+        logger.info("{} samples selected for training(over {})".format(np.count_nonzero(train_gt), np.count_nonzero(gt)))
+        test_gt = np.load(test_gt_file, 'r')
+        logger.info("Load train_gt successfully!(PATH:{})".format(test_gt_file))
+        logger.info("{} samples selected for training(over {})".format(np.count_nonzero(test_gt), np.count_nonzero(gt)))
+    else:
+        # Sample random training spectra
+        train_gt, test_gt = sample_gt(gt, TRAINING_PERCENTAGE, mode=SAMPLING_MODE)
+        np.save(train_gt_file, train_gt)
+        logger.info("Save train_gt successfully!(PATH:{})".format(train_gt_file))
+        np.save(test_gt_file, test_gt)
+        logger.info("Save test_gt successfully!(PATH:{})".format(test_gt_file))
+#    logger.info("{} samples selected for training(over {})".format(np.count_nonzero(train_gt), np.count_nonzero(gt)))
+#    logger.info("{} samples selected for training(over {})".format(np.count_nonzero(test_gt), np.count_nonzero(gt)))
+    logger.info("Running an experiment with the {} model, RUN [{}/{}]".format(MODEL, i + 1, RUN))
+    logger.info("RUN:{}".format(i))
     # Open visdom server
     if SAMPLING_MODE=='fixed':
         vis = visdom.Visdom(env='SAMPLENUMS' + str(SAMPLE_NUMS) + ' ' + DATASET + ' ' + MODEL + ' ' + 'PATCH_SIZE' + str(PATCH_SIZE) + ' ' + 'EPOCH' + str(EPOCH))
     else:
-        vis = visdom.Visdom(env='TRAINING_PERCENTAGE' + str(TRAINING_PERCENTAGE*100) + '% ' + DATASET + ' ' + MODEL + ' ' + 'PATCH_SIZE' + str(PATCH_SIZE) + ' ' + 'EPOCH' + str(EPOCH))
+        vis = visdom.Visdom(env=DATASET + ' ' + MODEL + ' ' + 'PATCH_SIZE' + str(PATCH_SIZE) + ' ' + 'EPOCH' + str(EPOCH))
+#        vis = visdom.Visdom(env='TRAINING_PERCENTAGE' + str(TRAINING_PERCENTAGE*100) + '% ' + DATASET + ' ' + MODEL + ' ' + 'PATCH_SIZE' + str(PATCH_SIZE) + ' ' + 'EPOCH' + str(EPOCH))
     if not vis.check_connection:
         print("Visdom is not connected. Did you run 'python -m visdom.server' ?")
 
-    # Load the dataset
-    img, gt, LABEL_VALUES, IGNORED_LABELS = get_dataset(logger, DATASET, FOLDER)
+    
 
     # Show dataset
     # display_dataset(img=img, vis=vis)
@@ -131,26 +161,23 @@ for i in range(RUN):
     hyperparams = dict((k, v) for k, v in hyperparams.items() if v is not None)
 
     # Sample random training spectra
-    train_gt, test_gt = sample_gt(gt, train_size=TRAINING_PERCENTAGE, mode=SAMPLING_MODE, sample_nums=SAMPLE_NUMS)
+#    train_gt, test_gt = sample_gt(gt, train_size=TRAINING_PERCENTAGE, mode=SAMPLING_MODE, sample_nums=SAMPLE_NUMS)
 
 
-    logger.info("{} samples selected for training(over {})".format(np.count_nonzero(train_gt), np.count_nonzero(gt)))
-
-    # Sample random validation spectra
-    val_gt, _ = sample_gt(gt, train_size=VALIDATION_PERCENTAGE, mode=SAMPLING_MODE, sample_nums=SAMPLE_NUMS)
-
-    # Show groundtruth
-    display_goundtruth(gt=gt, vis=vis, caption = "Training {} samples selected".format(np.count_nonzero(gt)))
-    # display_goundtruth(gt=train_gt, vis=vis, caption = "Training {} samples selected".format(np.count_nonzero(train_gt)))
-    # display_goundtruth(gt=test_gt, vis=vis, caption = "Testing {} samples selected".format(np.count_nonzero(test_gt)))
-    # display_goundtruth(gt=val_gt, vis=vis, caption = "Validation {} samples selected".format(np.count_nonzero(val_gt)))
-
-    logger.info("{} samples selected for validation(over {})".format(np.count_nonzero(val_gt), np.count_nonzero(train_gt)))
-                                                     
-    logger.info("Running an experiment with the {} model".format(MODEL))
+#    logger.info("{} samples selected for training(over {})".format(np.count_nonzero(train_gt), np.count_nonzero(gt)))
 
     # Get model
     model, optimizer, loss, hyperparams = get_model(DATASET, **hyperparams)
+    
+    # Sample random validation spectral
+    val_gt, _ = sample_gt(gt, train_size=hyperparams['validation_percentage'], mode=SAMPLING_MODE, sample_nums=SAMPLE_NUMS)
+
+    # Show groundtruth
+#    display_goundtruth(gt=gt, vis=vis, caption = "Training {} samples selected".format(np.count_nonzero(gt)))
+
+    logger.info("{} samples selected for validation(over {})".format(np.count_nonzero(val_gt), np.count_nonzero(gt)))
+                                                     
+    logger.info("Running an experiment with the {} model".format(MODEL))
 
     # Class balancing
     if CLASS_BALANCING:
@@ -190,8 +217,9 @@ for i in range(RUN):
     except KeyboardInterrupt:
         # Allow the user to stop the training
         pass
-    probabilities = test(model, img, hyperparams)
-    prediction = np.argmax(probabilities, axis=-1)
+#    probabilities = test(model, img, hyperparams)
+    prediction = test(model, img, hyperparams)
+#    prediction = np.argmax(probabilities, axis=-1)
     display_goundtruth(gt=prediction, vis=vis, caption="Testing ground truth(full)"+"RUN{}".format(i))
 
     results = metrics(prediction, test_gt, ignored_labels=hyperparams['ignored_labels'], n_classes=N_CLASSES)

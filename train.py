@@ -148,7 +148,9 @@ def test(net, img, hyperparams):
     n_classes = hyperparams['n_classes']
 
     kwargs = {'step': hyperparams['test_stride'], 'window_size': (patch_size, patch_size)}
-    probs = np.zeros(img.shape[:2] + (n_classes,))
+#    probs = np.zeros(img.shape[:2] + (n_classes,))
+    probs = np.zeros(img.shape[:2])
+    img = np.pad(img, ((patch_size // 2, patch_size // 2), (patch_size // 2, patch_size // 2), (0, 0)), 'reflect')
     # 统计生成窗口的数量 // bath_size = 迭代次数
     iterations = count_sliding_window(img, **kwargs) // batch_size
     # grouper生成batch_size数量的窗口
@@ -173,17 +175,28 @@ def test(net, img, hyperparams):
             indices = [b[1:] for b in batch]
             data = data.to(device)
             output = net(data)
+#            print("point1-----", output.shape)
             if isinstance(output, tuple):
                 output = output[0]
+#                print("point2-----", output.shape)
+            _, output = torch.max(output, dim=1)
+#            print("point1-----", output.size)
             output = output.to('cpu')
+#            output = output.item()
+#            print("point2-----", output.shape)
+            
+#            print("point3-----", output.shape)
 
             if patch_size == 1 or center_pixel:
                 output = output.numpy()
+#                print("point4-----", output.shape)
             else:
                 output = np.transpose(output.numpy(), (0, 2, 3, 1))
             for (x, y, w, h), out in zip(indices, output):
                 if center_pixel:
-                    probs[x + w // 2, y + h // 2] += out
+#                    print("point5-----", out.shape)
+#                    probs[x + w // 2, y + h // 2] += out
+                    probs[x, y] += out
                 else:
                     probs[x:x + w, y:y + h] += out
     return probs

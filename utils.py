@@ -112,6 +112,7 @@ def metrics(prediction, target, ignored_labels=[], n_classes=None):
     results = {}
 
     n_classes = np.max(target) + 1 if n_classes is None else n_classes
+
     # 计算混淆矩阵
     cm = confusion_matrix(
         target,
@@ -219,10 +220,10 @@ def sliding_window(image, step=10, window_size=(20, 20), with_data=True):
     W, H = image.shape[:2]
     offset_w = (W - w) % step
     offset_h = (H - h) % step
-    for x in range(0, W - w + offset_w, step):
+    for x in range(0, W - w + offset_w + 1, step):
         if x + w > W:
             x = W - w
-        for y in range(0, H - h + offset_h, step):
+        for y in range(0, H - h + offset_h + 1, step):
             if y + h > H:
                 y = H - h
             if with_data:
