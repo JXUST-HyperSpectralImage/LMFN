@@ -150,8 +150,10 @@ def get_dataset(logger, dataset_name, target_folder="./dataset/", datasets=DATAS
     # Normalization
     img = np.asarray(img, dtype='float32')
     data = img.reshape(np.prod(img.shape[:2]), np.prod(img.shape[2:]))  # 将数据由三维处理成二维，处理成二维才能归一化
-    data = preprocessing.minmax_scale(data)
-#    data = preprocessing.minmax_scale(data, axis=1)  # minmax_scale()函数默认将数据归一化到(0,1)
+    data = preprocessing.minmax_scale(data, axis=1)  # minmax_scale()函数默认将数据归一化到(0,1)
+    scaler = preprocessing.StandardScaler()
+    scaler.fit(data)
+    data = scaler.fit_transform(data)
     img = data.reshape(img.shape)  # 再将数据还原成三维
     return img, gt, label_values, ignored_labels
 

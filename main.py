@@ -14,14 +14,7 @@ import visdom
 # 忽略警告
 warnings.filterwarnings("ignore")
 
-# 生成日志
-file_date = datetime.datetime.now().strftime('%Y-%m-%d')
-log_date = datetime.datetime.now().strftime('%Y-%m-%d:%H:%M')
-logger = logger('./logs/logs-'+file_date+'.txt')
-logger.info("---------------------------------------------------------------------")
-logger.info("-----------------------------Next run log----------------------------")
-logger.info("---------------------------{}--------------------------".format(log_date))
-logger.info("---------------------------------------------------------------------")
+
 # 配置项目参数
 parser = argparse.ArgumentParser(description="Run experiments on various hyperspectral datasets")
 parser.add_argument('--dataset', type=str, default='IndianPines',
@@ -72,6 +65,8 @@ group_train.add_argument('--patch_size', type=int,
                               "(optional, if absent will be set by the model)")
 group_train.add_argument('--kernel_nums', type=int,
                          help="kernel nums of MI3DCNN spectral extraction feature moudle")
+group_train.add_argument('--kernel_depth', type=int, default=7,
+                         help="kernel depth of MI3DCNN spectral extraction feature moudle")
 group_train.add_argument('--lr', type=float,
                          help="Learning rate, set by the model if not specified.")
 group_train.add_argument('--batch_size', type=int,
@@ -85,9 +80,19 @@ args = parser.parse_args()
 
 RUN = args.run
 
-CUDA_DEVICE = get_device(logger, args.cuda)
+
 # Dataset name
 DATASET = args.dataset
+# 生成日志
+file_date = datetime.datetime.now().strftime('%Y-%m-%d')
+log_date = datetime.datetime.now().strftime('%Y-%m-%d:%H:%M')
+logger = logger('./logs/logs-'+file_date+DATASET+'.txt')
+logger.info("---------------------------------------------------------------------")
+logger.info("-----------------------------Next run log----------------------------")
+logger.info("---------------------------{}--------------------------".format(log_date))
+logger.info("---------------------------------------------------------------------")
+# Device
+CUDA_DEVICE = get_device(logger, args.cuda)
 # Model name
 MODEL = args.model
 # Spatial context size (number of neighbours in each spatial direction)
@@ -130,9 +135,9 @@ for i in range(RUN):
     else:
         # Sample random training spectra
         train_gt, test_gt = sample_gt(gt, TRAINING_PERCENTAGE, mode=SAMPLING_MODE)
-        np.save(train_gt_file, train_gt)
+#        np.save(train_gt_file, train_gt)
         logger.info("Save train_gt successfully!(PATH:{})".format(train_gt_file))
-        np.save(test_gt_file, test_gt)
+#        np.save(test_gt_file, test_gt)
         logger.info("Save test_gt successfully!(PATH:{})".format(test_gt_file))
 #    logger.info("{} samples selected for training(over {})".format(np.count_nonzero(train_gt), np.count_nonzero(gt)))
 #    logger.info("{} samples selected for training(over {})".format(np.count_nonzero(test_gt), np.count_nonzero(gt)))

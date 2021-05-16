@@ -8,7 +8,7 @@ import numpy as np
 
 class MI3DCNN(nn.Module):
 
-    def __init__(self, in_channel, classes, kernel_nums=24, spe_kernel_depth=7, init_conv_stride=1, drop_rate=0.5, bias=True):
+    def __init__(self, in_channel, classes, kernel_nums=1, spe_kernel_depth=7, init_conv_stride=1, drop_rate=0.5, bias=True):
         super(MI3DCNN, self).__init__()
         # Spectral Featrue Learning
         self.init_conv = nn.Sequential(
@@ -231,6 +231,7 @@ def get_model(name, **kwargs):
         in_channel=kwargs['n_bands'],
         classes=kwargs['n_classes'],
         kernel_nums=kwargs['kernel_nums'],
+        spe_kernel_depth=kwargs['kernel_depth'],
         init_conv_stride=1,
         drop_rate=0)
     criterion = nn.CrossEntropyLoss(weight=kwargs['weights'])

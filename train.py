@@ -175,27 +175,16 @@ def test(net, img, hyperparams):
             indices = [b[1:] for b in batch]
             data = data.to(device)
             output = net(data)
-#            print("point1-----", output.shape)
             if isinstance(output, tuple):
                 output = output[0]
-#                print("point2-----", output.shape)
             _, output = torch.max(output, dim=1)
-#            print("point1-----", output.size)
             output = output.to('cpu')
-#            output = output.item()
-#            print("point2-----", output.shape)
-            
-#            print("point3-----", output.shape)
-
             if patch_size == 1 or center_pixel:
                 output = output.numpy()
-#                print("point4-----", output.shape)
             else:
                 output = np.transpose(output.numpy(), (0, 2, 3, 1))
             for (x, y, w, h), out in zip(indices, output):
                 if center_pixel:
-#                    print("point5-----", out.shape)
-#                    probs[x + w // 2, y + h // 2] += out
                     probs[x, y] += out
                 else:
                     probs[x:x + w, y:y + h] += out
