@@ -30,9 +30,10 @@ class MI3DCNN(nn.Module):
 
         # spectral transform to spatial
         spa_kernel_depth = self.spa_feature_depth(kernel_depth=spe_kernel_depth, in_channel=in_channel, padding=spe_kernel_depth//2, stride=init_conv_stride)
-        self.spatial_conv1 = nn.Conv2d(spa_kernel_depth, spa_kernel_depth, kernel_size=5, padding=2, groups=spa_kernel_depth)
-        self.spatial_conv2 = nn.Conv2d(spa_kernel_depth, spa_kernel_depth, kernel_size=5, padding=2, groups=spa_kernel_depth)
-        self.spatial_conv3 = nn.Conv2d(spa_kernel_depth, spa_kernel_depth, kernel_size=5, padding=2, groups=spa_kernel_depth)
+        print('spa_kernel_depth:', spa_kernel_depth)
+        self.spatial_conv1 = nn.Conv2d(spa_kernel_depth, spa_kernel_depth, kernel_size=5, padding=5//2, groups=spa_kernel_depth)
+        self.spatial_conv2 = nn.Conv2d(spa_kernel_depth, spa_kernel_depth, kernel_size=5, padding=5//2, groups=spa_kernel_depth)
+        self.spatial_conv3 = nn.Conv2d(spa_kernel_depth, spa_kernel_depth, kernel_size=5, padding=5//2, groups=spa_kernel_depth)
         
         self.adaptive_transform = nn.Conv3d(kernel_nums, spa_kernel_depth, kernel_size=(spa_kernel_depth, 1, 1), stride=(1, 1, 1), padding=(0, 0, 0), bias=bias)
         
@@ -114,8 +115,7 @@ class MI3DCNN(nn.Module):
         x4 = torch.squeeze(x4)
         
         spectral_mask2 = self.adjacency_matrix(x4)
-        
-#        spectral_mask1 = self.adjacency_matrix(x4)
+#        x4 = x4.view(x4.size(1), 1, x4.size(2), x4.size(3))
         # spatial depthwise conv
         x5 = self.spatial_conv1(x4)
         x5 = torch.squeeze(x0).mul(spectral_mask0) + x5

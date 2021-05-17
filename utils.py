@@ -218,12 +218,12 @@ def sliding_window(image, step=10, window_size=(20, 20), with_data=True):
     # slide a window across the image
     w, h = window_size
     W, H = image.shape[:2]
-    offset_w = (W - w) % step
-    offset_h = (H - h) % step
-    for x in range(0, W - w + offset_w + 1, step):
+#    offset_w = (W - w) % step
+#    offset_h = (H - h) % step
+    for x in range(0, W - w, step):
         if x + w > W:
             x = W - w
-        for y in range(0, H - h + offset_h + 1, step):
+        for y in range(0, H - h, step):
             if y + h > H:
                 y = H - h
             if with_data:
