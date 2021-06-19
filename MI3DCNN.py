@@ -58,7 +58,6 @@ class MI3DCNN(nn.Module):
         try:
             center_pixel = data[:, :, x, y]
             center_pixel = center_pixel.view(data.shape[0], data.shape[1], 1, 1).repeat(1, 1, data.shape[-2], data.shape[-1])
-#            data = img.reshape(np.prod(img.shape[:2]), np.prod(img.shape[2:]))
             adjacency_matrix = center_pixel.mul(data)
             adjacency_matrix = torch.sum(center_pixel.mul(data), dim=1)
             adjacency_matrix = torch.unsqueeze(adjacency_matrix, 1)
@@ -78,8 +77,8 @@ class MI3DCNN(nn.Module):
         # spectral initial conv
         x0 = self.init_conv(x)
 
-#        spectral_mask0 = self.adjacency_matrix(torch.squeeze(self.adaptive_transform(x0)))
-        spectral_mask0 = self.adjacency_matrix(torch.squeeze(x0))
+
+        spectral_mask0 = self.adjacency_matrix(torch.squeeze(x0)) # frist mask
         
         if self.drop_rate > 0:
             F.dropout3d(x0, p=self.drop_rate)
@@ -95,16 +94,12 @@ class MI3DCNN(nn.Module):
         
         # frist residual
         x2 = x0 + x2
-        spectral_mask1 = self.adjacency_matrix(torch.squeeze(x2))
+        spectral_mask1 = self.adjacency_matrix(torch.squeeze(x2)) # second mask
         
         x3 = self.spectral_conv3(x2)
         if self.drop_rate > 0:
             F.dropout3d(x3, p=self.drop_rate)
     
-        # Residual connection
-#        x3 = x0 + x3
-        
-#        spectral_mask1 = self.adjacency_matrix(torch.squeeze(self.adaptive_transform(x3)))
         # spectral tranform to spatial
         x4 = self.spectral_end_conv(x3)
         if self.drop_rate > 0:
@@ -114,24 +109,17 @@ class MI3DCNN(nn.Module):
         x4 = x2 + x4
         x4 = torch.squeeze(x4)
         
-        spectral_mask2 = self.adjacency_matrix(x4)
-#        x4 = x4.view(x4.size(1), 1, x4.size(2), x4.size(3))
+        spectral_mask2 = self.adjacency_matrix(x4) # thrid mask
+
         # spatial depthwise conv
         x5 = self.spatial_conv1(x4)
-        x5 = torch.squeeze(x0).mul(spectral_mask0) + x5
-#        x5 = torch.squeeze(self.adaptive_transform(x0)).mul(spectral_mask0) + x5
-        
+        x5 = torch.squeeze(x0).mul(spectral_mask0) + x5 # frist attention
         
         x6 = self.spatial_conv2(x5)
-        x6 = torch.squeeze(x2).mul(spectral_mask1) + x6
+        x6 = torch.squeeze(x2).mul(spectral_mask1) + x6 # second attention
         
         x7 = self.spatial_conv3(x6)
-        x7 = x4.mul(spectral_mask2) + x7
-        
-#        x7 = torch.squeeze(self.adaptive_transform(x3)).mul(spectral_mask1) + x7
-#        x7 = torch.squeeze(x3).mul(spectral_mask1) + x7
-        
-#        x7 = x5 + x7
+        x7 = x4.mul(spectral_mask2) + x7 # thrid attention
         x7 = F.relu(x7) # 5x5 conv
         
         x8 = self.spatial_end_conv1(x7) # 3x3 conv
@@ -143,17 +131,16 @@ class MI3DCNN(nn.Module):
         x9 = F.relu(x9)
         
         x = x7 + x8 + x9
-        
-#        x10 = self.spatial_end_conv(x9)
 
         x = F.relu(x)
-
+        
         x = self.pool(x)
         
         x = x.view(x.size(0), -1)
-
+        
         # Fully connected layer
         x = self.fc(x)
+        
         return x
 
 
@@ -174,32 +161,38 @@ def get_model(name, **kwargs):
     weights[torch.LongTensor(kwargs['ignored_labels'])] = 0.
     weights = weights.to(kwargs['device'])
     kwargs.setdefault('weights', weights)
-    kwargs.setdefault('batch_size', 16)
-    kwargs.setdefault('patch_size', 7)
-    kwargs.setdefault('epoch', 200)
+    
+    kwargs.setdefault('patch_size', 9)
+    
 
     if name == 'IndianPines':
+        kwargs.setdefault('epoch', 130)
         # training percentage and validation percentage
+        kwargs.setdefault('batch_size', 64)
         kwargs.setdefault('training_percentage', 0.1)
         kwargs.setdefault('validation_percentage', 0.1)
         # learning rate
-        kwargs.setdefault('lr', 0.0003)
+        kwargs.setdefault('lr', 0.01)
         # conv layer kernel numbers
         kwargs.setdefault('kernel_nums', 1)
     elif name == 'PaviaU':
+        kwargs.setdefault('epoch', 100)
+        kwargs.setdefault('batch_size', 64)
         # training percentage and validation percentage
-        kwargs.setdefault('training_percentage', 0.02)
-        kwargs.setdefault('validation_percentage', 0.02)
+        kwargs.setdefault('training_percentage', 0.03)
+        kwargs.setdefault('validation_percentage', 0.03)
         # learning rate
         kwargs.setdefault('lr', 0.01)
         # conv layer kernel numbers
         kwargs.setdefault('kernel_nums', 1)
     elif name == 'KSC':
+        kwargs.setdefault('epoch', 130)
+        kwargs.setdefault('batch_size', 32)
         # training percentage and validation percentage
         kwargs.setdefault('training_percentage', 0.03)
         kwargs.setdefault('validation_percentage', 0.03)
         # learning rate
-        kwargs.setdefault('lr', 0.0001)
+        kwargs.setdefault('lr', 0.01)
         # conv layer kernel numbers
         kwargs.setdefault('kernel_nums', 1)
     elif name == 'Botswana':
@@ -257,6 +250,8 @@ def get_model(name, **kwargs):
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # print(device)
-    model = MI3DCNN(in_channel=200, classes=17, kernel_nums=24, spe_kernel_depth=7, drop_rate=0).to(device)
-    with torch.no_grad():
-        summary(model, (1, 200, 7, 7))
+    model = MI3DCNN(in_channel=103, classes=10, kernel_nums=1, spe_kernel_depth=7, drop_rate=0).to(device)
+    total = sum([param.nelement() for param in model.parameters()])
+    print("Number of parameter: {}==>{:.2f}M".format(total, total/1e6))
+#    with torch.no_grad():
+#        summary(model, (1, 200, 7, 7))

@@ -123,16 +123,19 @@ hyperparams = vars(args)
 # Load the dataset
 img, gt, LABEL_VALUES, IGNORED_LABELS = get_dataset(logger, DATASET, FOLDER)
 for i in range(RUN):
-    train_gt_file = '../dataset/'+DATASET+'/train_gt'+str(i)+'.npy'
-    test_gt_file = '../dataset/' + DATASET + '/test_gt'+str(i)+'.npy'
     if TRAIN_GT and TEST_GT:
+        train_gt_file = '../dataset/'+DATASET+'/train_gt'+str(0)+'.npy'
+        test_gt_file = '../dataset/' + DATASET + '/test_gt'+str(0)+'.npy'
         train_gt = np.load(train_gt_file, 'r')
         logger.info("Load train_gt successfully!(PATH:{})".format(train_gt_file))
         logger.info("{} samples selected for training(over {})".format(np.count_nonzero(train_gt), np.count_nonzero(gt)))
+        logger.info("Training Percentage:{:.2}".format(np.count_nonzero(train_gt)/np.count_nonzero(gt)))
         test_gt = np.load(test_gt_file, 'r')
         logger.info("Load train_gt successfully!(PATH:{})".format(test_gt_file))
         logger.info("{} samples selected for training(over {})".format(np.count_nonzero(test_gt), np.count_nonzero(gt)))
     else:
+        train_gt_file = '../dataset/'+DATASET+'/train_gt'+str(i)+'.npy'
+        test_gt_file = '../dataset/' + DATASET + '/test_gt'+str(i)+'.npy'
         # Sample random training spectra
         train_gt, test_gt = sample_gt(gt, TRAINING_PERCENTAGE, mode=SAMPLING_MODE)
 #        np.save(train_gt_file, train_gt)
