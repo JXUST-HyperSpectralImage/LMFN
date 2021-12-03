@@ -45,7 +45,6 @@ def get_dataset(logger, dataset_name, target_folder="./dataset/", datasets=DATAS
         label_values: list of class names
         ignored_labels: list of int classes to ignore
     """
-    # 若是输入的数据不在项目范围内，则报错
     if dataset_name not in datasets.keys():
         raise ValueError("{} dataset is unknown.".format(dataset_name))
 
@@ -136,7 +135,6 @@ def get_dataset(logger, dataset_name, target_folder="./dataset/", datasets=DATAS
 
         ignored_labels = [0]
 
-    # 检查像元是否为空
     nan_mask = np.isnan(img.sum(axis=-1))
     if np.count_nonzero(nan_mask) > 0:
         logger.info(
@@ -176,12 +174,11 @@ class HyperX(torch.utils.data.Dataset):
         self.data = data
         self.label = gt
         self.dataset_name = hyperparams['dataset']
-        self.patch_size = hyperparams['patch_size']  # 邻域大小
-        self.ignored_labels = set(hyperparams['ignored_labels'])  # 未标记类别
+        self.patch_size = hyperparams['patch_size']
+        self.ignored_labels = set(hyperparams['ignored_labels'])
         self.center_pixel = hyperparams['center_pixel']
         supervision = hyperparams['supervision']
         # Fully supervised : use all pixels with label not ignored
-        # 只选取标记了类别的像素点作为训练样本
         if supervision == 'full':
             mask = np.ones_like(gt)
             for l in self.ignored_labels:
@@ -191,13 +188,11 @@ class HyperX(torch.utils.data.Dataset):
             mask = np.ones_like(gt)
         x_pos, y_pos = np.nonzero(mask)
         p = self.patch_size // 2
-        # 检查窗口是否超出边界，超出就丢弃
         self.indices = np.array([(x, y) for x, y in zip(x_pos, y_pos) if
                                  x > p and x < data.shape[0] - p and y > p and y < data.shape[1] - p])
         self.labels = [self.label[x, y] for x, y in self.indices]
         print(f'Data loader sample numbers:{len(self.labels)}')
         self.count = len(self.labels) // 4
-        # 打乱顺序
         np.random.shuffle(self.indices)
 
     def __len__(self):
@@ -219,14 +214,12 @@ class HyperX(torch.utils.data.Dataset):
         data = torch.from_numpy(data)
         label = torch.from_numpy(label)
         # Extract the center label if needed
-        # 取出中心点像素的标签
         if self.center_pixel and self.patch_size > 1:
             label = label[self.patch_size // 2, self.patch_size // 2]
         # Remove unused dimensions when we work with invidual spectrums
         elif self.patch_size == 1:
             data = data[:, 0, 0]
             label = label[0, 0]
-
         # Add a fourth dimension for 3D CNN
         data = data.unsqueeze(0)
 

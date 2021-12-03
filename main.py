@@ -77,7 +77,6 @@ RUN = args.run
 
 # Dataset name
 DATASET = args.dataset
-# 生成日志
 file_date = datetime.datetime.now().strftime('%Y-%m-%d')
 log_date = datetime.datetime.now().strftime('%Y-%m-%d:%H:%M')
 logger = logger('./logs/logs-'+file_date+DATASET+'.txt')

@@ -9,15 +9,12 @@ import matplotlib.pyplot as plt
 from utils import count_sliding_window, sliding_window, grouper, camel_to_snake
 
 
-# 普通训练过程
 def train(logger, net, optimizer, criterion, train_loader, epoch, save_epoch, scheduler=None,
           device=torch.device('cpu'), val_loader=None, supervision='full', vis_display=None, RUN=None):
-    # 首先检查损失函数
+
     if criterion is None:
         logger.debug("Missing criterion. You must specify a loss function.")
         raise Exception("Missing criterion. You must specify a loss function.")
-
-    # 定义全局变量
     net.to(device)
     save_epoch = save_epoch if epoch > 20 else 1
     lr_list = []
@@ -29,11 +26,9 @@ def train(logger, net, optimizer, criterion, train_loader, epoch, save_epoch, sc
     LEN = len(train_loader)
 
     for e in tqdm(range(1, epoch + 1), desc="Training the network"):
-        # 因为每轮训练结尾都要进行验证模式，需要重新将模式调整回训练模式
         net.train()
         avg_loss = 0.
         for batch_idx, (data, label) in enumerate(train_loader):
-            # 将数据载入GPU
             data, label = data.to(device), label.to(device)
             optimizer.zero_grad()
             if supervision == 'full':
@@ -54,7 +49,6 @@ def train(logger, net, optimizer, criterion, train_loader, epoch, save_epoch, sc
             lr_list.append(optimizer.state_dict()['param_groups'][0]['lr'])
 
             iter_ += 1
-            # 释放缓存
             del (data, label, loss, output)
 
         avg_loss /= LEN
@@ -62,7 +56,6 @@ def train(logger, net, optimizer, criterion, train_loader, epoch, save_epoch, sc
         if val_loader is not None:
             val_acc = val(net, val_loader, device=device, supervision=supervision)
             val_accuracies.append(val_acc)
-            # 因为这里的精度要在后面的梯度更新中用到，所以取负数，metric越小说明
             metric = -val_acc
         else:
             metric = avg_loss
@@ -70,11 +63,8 @@ def train(logger, net, optimizer, criterion, train_loader, epoch, save_epoch, sc
             scheduler.step(metric)
         elif scheduler is not None:
             scheduler.step()
-        # 在控制台打印信息
         tqdm.write(f"Epoch [{e}/{epoch}    avg_loss:{avg_loss:.2f}, val_acc:{val_acc:.2f}]")
-        # 在日志打印信息
         logger.debug(f"Epoch [{e}/{epoch}    avg_loss:{avg_loss:.2f}, val_acc:{val_acc:.2f}]")
-        # 保存断点(如果不是必要情况下不用保存，保存会降低模型训练速度)
         #        if e%save_epoch == 0:
         #            update = None if loss_win is None else 'append'
         #            save_model(logger, net, camel_to_snake(str(net.__class__.__name__)),train_loader.dataset.dataset_name, epoch=e, metric=abs(metric))
@@ -112,7 +102,6 @@ def train(logger, net, optimizer, criterion, train_loader, epoch, save_epoch, sc
     #           })
 
 
-# 普通验证过程
 def val(net, data_loader, device='cpu', supervision='full'):
     accuracy, total = 0., 0.
     ignored_labels = data_loader.dataset.ignored_labels
@@ -147,12 +136,9 @@ def test(net, img, hyperparams):
     n_classes = hyperparams['n_classes']
 
     kwargs = {'step': hyperparams['test_stride'], 'window_size': (patch_size, patch_size)}
-#    probs = np.zeros(img.shape[:2] + (n_classes,))
     probs = np.zeros(img.shape[:2])
     img = np.pad(img, ((patch_size // 2, patch_size // 2), (patch_size // 2, patch_size // 2), (0, 0)), 'reflect')
-    # 统计生成窗口的数量 // bath_size = 迭代次数
     iterations = count_sliding_window(img, **kwargs) // batch_size
-    # grouper生成batch_size数量的窗口
     for batch in tqdm(grouper(batch_size, sliding_window(img, **kwargs)),
                       # ncols=iterations,
                       total=(iterations),
@@ -160,11 +146,11 @@ def test(net, img, hyperparams):
                       ):
         with torch.no_grad():
             if patch_size == 1:
-                data = [b[0][0, 0] for b in batch]  # 如果是一维数据，则每次只取最左上角的数据
+                data = [b[0][0, 0] for b in batch]
                 data = np.copy(data)
                 data = torch.from_numpy(data)
             else:
-                data = [b[0] for b in batch]  # 每次取整个窗口数据
+                data = [b[0] for b in batch]
                 data = np.copy(data)
                 data = data.transpose(0, 3, 1, 2)  # (N, H, W, C)-->（N, C, H, W)
                 data = torch.from_numpy(data)
@@ -190,7 +176,6 @@ def test(net, img, hyperparams):
     return probs
 
 
-# 保存模型
 def save_model(logger, model, model_name, dataset_name, **kwargs):
     model_dir = './checkpoints/' + model_name + "/" + dataset_name + "/"
     if not os.path.isdir(model_dir):

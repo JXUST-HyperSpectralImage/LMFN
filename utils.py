@@ -13,26 +13,19 @@ import spectral
 
 
 def logger(logfile_name='logs/logs.log'):
-    # 先创建记录器
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
-    # 创建处理器handler
     consoleHandler = logging.StreamHandler()
     consoleHandler.setLevel(logging.INFO)
 
-    # 创建处理器filehandler
     fileHandler = logging.FileHandler(filename=logfile_name)
     fileHandler.setLevel(logging.DEBUG)
 
-    # 设置日志输出格式
-    #    formatter = logging.Formatter("%(asctime)s-%(filename)s-%(message)s", "%Y-%m-%d-%H-%M")
     formatter = logging.Formatter("%(message)s")
-    # 设置处理器格式
     consoleHandler.setFormatter(formatter)
     fileHandler.setFormatter(formatter)
 
-    # 将记录器与处理器相关联
     logger.addHandler(consoleHandler)
     logger.addHandler(fileHandler)
 
@@ -63,7 +56,6 @@ def sample_gt(gt, train_size=None, mode='random', sample_nums=None):
                 continue
             indices = np.nonzero(gt == c)
             X = list(zip(*indices))  # x,y features
-            # 如果采样数量比样本数量大，对样本进行镜像填充
             if sample_nums / len(X) > 1:
                 X_copy = X.copy()
                 for i in range(sample_nums // len(X)):
@@ -103,8 +95,8 @@ def sample_gt(gt, train_size=None, mode='random', sample_nums=None):
 def metrics(prediction, target, ignored_labels=[], n_classes=None):
     ignored_mask = np.zeros(target.shape[:2], dtype=np.bool)
     for l in ignored_labels:
-        ignored_mask[target == l] = True  # 未定义的坐标物定义取True，其它取False
-    ignored_mask = ~ignored_mask  # 再对标记矩阵取反，未定义取False，其它取True
+        ignored_mask[target == l] = True
+    ignored_mask = ~ignored_mask
     # target = target[ignored_mask] -1
     target = target[ignored_mask]
     prediction = prediction[ignored_mask]
@@ -113,7 +105,6 @@ def metrics(prediction, target, ignored_labels=[], n_classes=None):
 
     n_classes = np.max(target) + 1 if n_classes is None else n_classes
 
-    # 计算混淆矩阵
     cm = confusion_matrix(
         target,
         prediction,
