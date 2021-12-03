@@ -136,7 +136,6 @@ def val(net, data_loader, device='cpu', supervision='full'):
     return accuracy / total
 
 
-# 测试过程
 def test(net, img, hyperparams):
     """
     Test a model on a specific image

@@ -1,9 +1,7 @@
 import torch
 from torch.utils import data
 from torchsummary import summary
-
 from dataset import get_dataset, HyperX
-from MI3DCNN import get_model
 from train import test, train
 from utils import get_device, sample_gt, compute_imf_weights, metrics, logger, display_dataset, display_goundtruth
 import argparse
@@ -11,11 +9,9 @@ import numpy as np
 import warnings
 import datetime
 import visdom
-# 忽略警告
 warnings.filterwarnings("ignore")
 
 
-# 配置项目参数
 parser = argparse.ArgumentParser(description="Run experiments on various hyperspectral datasets")
 parser.add_argument('--dataset', type=str, default='IndianPines',
                     help="Choice one dataset for training"
@@ -26,7 +22,7 @@ parser.add_argument('--dataset', type=str, default='IndianPines',
                     "KSC"
                     "Botswana"
                     "Salinas")
-parser.add_argument('--model', type=str, default='MI3DCNN',
+parser.add_argument('--model', type=str, default='LMFN',
                     help="Model to train.")
 parser.add_argument('--folder', type=str, default='../dataset/',
                     help="Folder where to store the "
@@ -44,15 +40,13 @@ group_dataset.add_argument('--sampling_mode', type=str, default='random',
                            help="Sampling mode (random sampling or disjoint, default:  fixed)")
 group_dataset.add_argument('--training_percentage', type=float,
                            help="Percentage of samples to use for training")
-group_dataset.add_argument('--validation_percentage', type=float,
+group_dataset.add_argument('--validation_percentage', type=float, default=0.10,
                            help="In the training data set, percentage of the labeled data are randomly "
                                 "assigned to validation groups.")
 group_dataset.add_argument('--sample_nums', type=int, default=20,
                            help="Number of samples to use for training and validation")
-group_dataset.add_argument('--train_gt', action='store_true',
+group_dataset.add_argument('--load_data', type=str, default=None,
                            help="Samples use of training")
-group_dataset.add_argument('--test_gt', action='store_true',
-                           help="Samples use of testing")
 
 
 group_train = parser.add_argument_group('Training')
@@ -63,7 +57,7 @@ group_train.add_argument('--save_epoch', type=int, default=5,
 group_train.add_argument('--patch_size', type=int,
                          help="patch size of  spectral feature extration model"
                               "(optional, if absent will be set by the model)")
-group_train.add_argument('--kernel_nums', type=int,
+group_train.add_argument('--kernel_nums', type=int, default=1,
                          help="kernel nums of MI3DCNN spectral extraction feature moudle")
 group_train.add_argument('--kernel_depth', type=int, default=7,
                          help="kernel depth of MI3DCNN spectral extraction feature moudle")
@@ -114,18 +108,31 @@ CHECKPOINT = args.restore
 LEARNING_RATE = args.lr
 # Automated class balancing
 CLASS_BALANCING = args.class_balancing
-TRAIN_GT = args.train_gt
-TEST_GT = args.test_gt
+LOAD_DATA = args.load_data
 TEST_STRIDE = args.test_stride
 
 hyperparams = vars(args)
 
+if MODEL == 'LMFN':
+    from LMFN import get_model
+elif MODEL == 'LMFN_SE':
+    from LMFN_SE import get_model
+elif MODEL == 'LMFN_CBW':
+    from LMFN_CBW import get_model
+elif MODEL == 'LMFN_SSCA':
+    from LMFN_SSCA import get_model
+elif MODEL == 'LMFN_kernel':
+    from LMFN_kernel import get_model
+elif MODEL == 'LMFN_no_attention':
+    from LMFN_no_attention import get_model
+    
+
 # Load the dataset
 img, gt, LABEL_VALUES, IGNORED_LABELS = get_dataset(logger, DATASET, FOLDER)
 for i in range(RUN):
-    if TRAIN_GT and TEST_GT:
-        train_gt_file = '../dataset/'+DATASET+'/train_gt'+str(0)+'.npy'
-        test_gt_file = '../dataset/' + DATASET + '/test_gt'+str(0)+'.npy'
+    if LOAD_DATA:
+        train_gt_file = '../dataset/' + DATASET + '/' + LOAD_DATA + '/train_gt.npy'
+        test_gt_file  = '../dataset/' + DATASET + '/' + LOAD_DATA + '/test_gt.npy'
         train_gt = np.load(train_gt_file, 'r')
         logger.info("Load train_gt successfully!(PATH:{})".format(train_gt_file))
         logger.info("{} samples selected for training(over {})".format(np.count_nonzero(train_gt), np.count_nonzero(gt)))
@@ -134,16 +141,12 @@ for i in range(RUN):
         logger.info("Load train_gt successfully!(PATH:{})".format(test_gt_file))
         logger.info("{} samples selected for training(over {})".format(np.count_nonzero(test_gt), np.count_nonzero(gt)))
     else:
-        train_gt_file = '../dataset/'+DATASET+'/train_gt'+str(i)+'.npy'
-        test_gt_file = '../dataset/' + DATASET + '/test_gt'+str(i)+'.npy'
+        train_gt_file = '../dataset/' + DATASET + LOAD_DATA + '/train_gt.npy'
+        test_gt_file  = '../dataset/' + DATASET + LOAD_DATA + '/test_gt.npy'
         # Sample random training spectra
         train_gt, test_gt = sample_gt(gt, TRAINING_PERCENTAGE, mode=SAMPLING_MODE)
-#        np.save(train_gt_file, train_gt)
         logger.info("Save train_gt successfully!(PATH:{})".format(train_gt_file))
-#        np.save(test_gt_file, test_gt)
         logger.info("Save test_gt successfully!(PATH:{})".format(test_gt_file))
-#    logger.info("{} samples selected for training(over {})".format(np.count_nonzero(train_gt), np.count_nonzero(gt)))
-#    logger.info("{} samples selected for training(over {})".format(np.count_nonzero(test_gt), np.count_nonzero(gt)))
     logger.info("Running an experiment with the {} model, RUN [{}/{}]".format(MODEL, i + 1, RUN))
     logger.info("RUN:{}".format(i))
     # Open visdom server
