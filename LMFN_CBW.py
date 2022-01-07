@@ -49,7 +49,7 @@ class CBW_BasicBlock(nn.Module):
         return out
 
 
-class SLFN(nn.Module):
+class LMFN(nn.Module):
     @staticmethod
     def weight_init(m):
         if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
@@ -58,7 +58,7 @@ class SLFN(nn.Module):
 
     def __init__(self, in_channel, classes, kernel_nums=1, spe_kernel_depth=7, spa_kernel_size=5, init_conv_stride=1,
                  drop_rate=None, bias=True):
-        super(SLFN, self).__init__()
+        super(LMFN, self).__init__()
         # Spectral Featrue Learning
         self.init_conv = nn.Sequential(
             nn.Conv3d(1, kernel_nums, kernel_size=(spe_kernel_depth, 1, 1), stride=(init_conv_stride, 1, 1),
@@ -197,7 +197,7 @@ def get_model(name, **kwargs):
     kwargs.setdefault('batch_size', 64)
     kwargs.setdefault('kernel_depth', 7)
 
-    model = SLFN(
+    model = LMFN(
         in_channel=kwargs['n_bands'],
         classes=kwargs['n_classes'],
         kernel_nums=kwargs['kernel_nums'],
@@ -227,7 +227,7 @@ if __name__ == "__main__":
     bands = 176
     classes = 14
 
-    model = SLFN(in_channel=bands, classes=classes, kernel_nums=1, spe_kernel_depth=7, init_conv_stride=2,
+    model = LMFN(in_channel=bands, classes=classes, kernel_nums=1, spe_kernel_depth=7, init_conv_stride=2,
                  drop_rate=0.5).to(device)
     total = sum([param.nelement() for param in model.parameters()])
     print("Number of parameter: {}==>{:.2f}M".format(total, total / 1e6))

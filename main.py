@@ -153,11 +153,8 @@ for i in range(RUN):
         vis = visdom.Visdom(env='SAMPLENUMS' + str(SAMPLE_NUMS) + ' ' + DATASET + ' ' + MODEL + ' ' + 'PATCH_SIZE' + str(PATCH_SIZE) + ' ' + 'EPOCH' + str(EPOCH))
     else:
         vis = visdom.Visdom(env=DATASET + ' ' + MODEL + ' ' + 'PATCH_SIZE' + str(PATCH_SIZE) + ' ' + 'EPOCH' + str(EPOCH))
-#        vis = visdom.Visdom(env='TRAINING_PERCENTAGE' + str(TRAINING_PERCENTAGE*100) + '% ' + DATASET + ' ' + MODEL + ' ' + 'PATCH_SIZE' + str(PATCH_SIZE) + ' ' + 'EPOCH' + str(EPOCH))
     if not vis.check_connection:
         print("Visdom is not connected. Did you run 'python -m visdom.server' ?")
-
-    
 
     # Show dataset
     # display_dataset(img=img, vis=vis)
@@ -227,9 +224,7 @@ for i in range(RUN):
     except KeyboardInterrupt:
         # Allow the user to stop the training
         pass
-#    probabilities = test(model, img, hyperparams)
     prediction = test(model, img, hyperparams)
-#    prediction = np.argmax(probabilities, axis=-1)
     display_goundtruth(gt=prediction, vis=vis, caption="Testing ground truth(full)"+"RUN{}".format(i))
 
     results = metrics(prediction, test_gt, ignored_labels=hyperparams['ignored_labels'], n_classes=N_CLASSES)

@@ -173,7 +173,6 @@ def convert_to_color_(arr_2d, palette=None):
         flatui = ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF", "#CD853F", "#2E8B57", "#8A2BE2",
                   "#C71585", "#32CD32", "#4169E1", "#8B4513", "#5F9EA0", "#FFFACD", "#800000", "#B0C4DE", "#00FFFF",
                   "#D2B48C", "#FA8072"]
-        # l-亮度 lightness / s-饱和 saturation
         for k, color in enumerate(sns.color_palette(flatui)):
             palette[k + 1] = tuple(np.asarray(255 * np.array(color), dtype='uint8'))
     for c, i in palette.items():
@@ -209,8 +208,6 @@ def sliding_window(image, step=10, window_size=(20, 20), with_data=True):
     # slide a window across the image
     w, h = window_size
     W, H = image.shape[:2]
-#    offset_w = (W - w) % step
-#    offset_h = (H - h) % step
     for x in range(0, W - w, step):
         if x + w > W:
             x = W - w
